@@ -6,6 +6,7 @@ import { MangaGrid } from '@/components/manga/MangaGrid';
 import { GenreList } from '@/components/manga/GenreList';
 import { LatestUpdates } from '@/components/manga/LatestUpdates';
 import { featuredManga, popularManga, latestUpdates, genres } from '@/data/mockData';
+import { TrendingUp } from 'lucide-react';
 
 const Index = () => {
   const [isDark, setIsDark] = useState(true);
@@ -28,16 +29,25 @@ const Index = () => {
         {/* Hero Section */}
         <HeroBanner manga={featuredManga} />
 
-        <div className="container space-y-12 py-12">
+        <div className="container space-y-16 py-16">
           {/* Genres */}
           <GenreList genres={genres} />
 
-          {/* Popular Manga */}
-          <MangaGrid 
-            manga={popularManga.slice(0, 6)} 
-            title="Popular Manga" 
-            showAll="/popular" 
-          />
+          {/* Popular Manga with Custom Header */}
+          <section className="animate-fade-in">
+            <div className="mb-8 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
+                <TrendingUp className="h-5 w-5 text-accent" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground md:text-3xl">
+                Trending Now
+              </h2>
+            </div>
+            <MangaGrid 
+              manga={popularManga.slice(0, 6)} 
+              showAll="/popular" 
+            />
+          </section>
 
           {/* Latest Updates */}
           <LatestUpdates manga={latestUpdates} />

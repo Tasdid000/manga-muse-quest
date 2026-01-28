@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, Menu, X, BookOpen, Moon, Sun } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Search, Menu, X, BookOpen, Moon, Sun, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,17 @@ interface HeaderProps {
 export function Header({ isDark, toggleTheme }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,32 +42,54 @@ export function Header({ isDark, toggleTheme }: HeaderProps) {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+    <header 
+      className={cn(
+        'sticky top-0 z-50 w-full transition-all duration-300',
+        isScrolled 
+          ? 'border-b border-border/50 bg-background/80 backdrop-blur-xl shadow-sm' 
+          : 'bg-transparent'
+      )}
+    >
+      <div className="container flex h-16 items-center justify-between md:h-20">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+        <Link to="/" className="group flex items-center gap-3">
+          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg transition-transform group-hover:scale-105">
             <BookOpen className="h-5 w-5 text-primary-foreground" />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary-foreground/10 to-transparent" />
           </div>
-          <span className="text-xl font-bold text-foreground">MangaVerse</span>
+          <div className="flex flex-col">
+            <span className="text-xl font-bold text-foreground">MangaVerse</span>
+            <span className="hidden text-xs text-muted-foreground sm:block">Read. Explore. Enjoy.</span>
+          </div>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-6 md:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              to={link.href}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav className="hidden items-center gap-1 md:flex">
+          {navLinks.map((link) => {
+            const isActive = location.pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  'relative rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200',
+                  isActive 
+                    ? 'text-primary' 
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                )}
+              >
+                {link.label}
+                {isActive && (
+                  <span className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary" />
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Search & Actions */}
-        <div className="flex items-center gap-3">
-          <form onSubmit={handleSearch} className="hidden sm:block">
+        <div className="flex items-center gap-2">
+          <form onSubmit={handleSearch} className="hidden lg:block">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -65,7 +97,7 @@ export function Header({ isDark, toggleTheme }: HeaderProps) {
                 placeholder="Search manga..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 pl-10"
+                className="w-64 rounded-xl border-border/50 bg-secondary/50 pl-10 transition-all duration-200 focus:w-72 focus:bg-background focus:shadow-lg"
               />
             </div>
           </form>
@@ -73,10 +105,25 @@ export function Header({ isDark, toggleTheme }: HeaderProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={toggleTheme}
-            className="text-muted-foreground hover:text-foreground"
+            className="hidden text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground sm:flex"
           >
-            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            <Sparkles className="h-5 w-5" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="relative overflow-hidden text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground"
+          >
+            <Sun className={cn(
+              'h-5 w-5 transition-all duration-300',
+              isDark ? 'rotate-0 scale-100' : 'rotate-90 scale-0'
+            )} />
+            <Moon className={cn(
+              'absolute h-5 w-5 transition-all duration-300',
+              isDark ? '-rotate-90 scale-0' : 'rotate-0 scale-100'
+            )} />
           </Button>
 
           {/* Mobile Menu Button */}
@@ -86,7 +133,14 @@ export function Header({ isDark, toggleTheme }: HeaderProps) {
             className="md:hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <Menu className={cn(
+              'h-5 w-5 transition-all duration-200',
+              isMenuOpen && 'rotate-90 scale-0'
+            )} />
+            <X className={cn(
+              'absolute h-5 w-5 transition-all duration-200',
+              isMenuOpen ? 'rotate-0 scale-100' : '-rotate-90 scale-0'
+            )} />
           </Button>
         </div>
       </div>
@@ -94,34 +148,46 @@ export function Header({ isDark, toggleTheme }: HeaderProps) {
       {/* Mobile Menu */}
       <div
         className={cn(
-          'absolute left-0 right-0 top-16 border-b border-border bg-background p-4 md:hidden',
-          isMenuOpen ? 'block' : 'hidden'
+          'absolute left-0 right-0 top-16 border-b border-border/50 bg-background/95 backdrop-blur-xl transition-all duration-300 md:hidden',
+          isMenuOpen 
+            ? 'translate-y-0 opacity-100' 
+            : 'pointer-events-none -translate-y-4 opacity-0'
         )}
       >
-        <form onSubmit={handleSearch} className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search manga..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10"
-            />
-          </div>
-        </form>
-        <nav className="flex flex-col gap-2">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              to={link.href}
-              onClick={() => setIsMenuOpen(false)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="container py-6">
+          <form onSubmit={handleSearch} className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search manga..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-xl bg-secondary/50 pl-10"
+              />
+            </div>
+          </form>
+          <nav className="flex flex-col gap-1">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={cn(
+                    'rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
+                    isActive 
+                      ? 'bg-primary/10 text-primary' 
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  )}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
       </div>
     </header>
   );
