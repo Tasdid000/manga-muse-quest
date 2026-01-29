@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   ChevronLeft, ChevronRight, Home, Settings, 
-  ZoomIn, ZoomOut, Maximize2, ArrowLeft, BookOpen, Layers
+  ZoomIn, ZoomOut, Maximize2, ArrowLeft, Layers, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,14 +20,11 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Slider } from '@/components/ui/slider';
-import { mangaList } from '@/data/mockData';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useChapterPages, useMangaChapters, useManga } from '@/hooks/useManhwa';
+import { getTitle } from '@/lib/api/mangadex';
 import { cn } from '@/lib/utils';
-
-const generatePages = (chapterNum: number) => {
-  return Array.from({ length: 20 }, (_, i) => 
-    `https://picsum.photos/seed/${chapterNum}-${i}/800/1200`
-  );
-};
 
 const ChapterReader = () => {
   const { mangaId, chapterId } = useParams();
@@ -36,24 +33,39 @@ const ChapterReader = () => {
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [dataSaver, setDataSaver] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
 
-  const manga = mangaList.find((m) => m.id === mangaId);
-  const chapter = manga?.chapters.find((c) => c.id === chapterId);
-  const chapterIndex = manga?.chapters.findIndex((c) => c.id === chapterId) ?? -1;
+  const { data: mangaData } = useManga(mangaId || '');
+  const { data: chaptersData } = useMangaChapters(mangaId || '', 500);
+  const { data: pages, isLoading: pagesLoading, error: pagesError } = useChapterPages(chapterId || '', dataSaver);
 
-  const pages = chapter ? generatePages(chapter.number) : [];
+  const manga = mangaData?.data;
+  const title = manga ? getTitle(manga) : 'Loading...';
 
-  const prevChapter = manga?.chapters[chapterIndex + 1];
-  const nextChapter = manga?.chapters[chapterIndex - 1];
+  // Process chapters
+  const chapters = chaptersData?.data
+    ?.filter((ch, index, arr) => 
+      arr.findIndex(c => c.attributes.chapter === ch.attributes.chapter) === index
+    )
+    .sort((a, b) => {
+      const aNum = parseFloat(a.attributes.chapter || '0');
+      const bNum = parseFloat(b.attributes.chapter || '0');
+      return bNum - aNum;
+    }) || [];
+
+  const currentChapter = chapters.find(ch => ch.id === chapterId);
+  const chapterIndex = chapters.findIndex(ch => ch.id === chapterId);
+  const prevChapter = chapters[chapterIndex + 1];
+  const nextChapter = chapters[chapterIndex - 1];
 
   const goToPage = useCallback((page: number) => {
-    if (page >= 0 && page < pages.length) {
+    if (pages && page >= 0 && page < pages.length) {
       setCurrentPage(page);
-      setIsLoading(true);
+      setImageLoading(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [pages.length]);
+  }, [pages]);
 
   const goToPrevPage = useCallback(() => {
     if (currentPage > 0) {
@@ -64,12 +76,12 @@ const ChapterReader = () => {
   }, [currentPage, goToPage, prevChapter, navigate, mangaId]);
 
   const goToNextPage = useCallback(() => {
-    if (currentPage < pages.length - 1) {
+    if (pages && currentPage < pages.length - 1) {
       goToPage(currentPage + 1);
     } else if (nextChapter) {
       navigate(`/manga/${mangaId}/chapter/${nextChapter.id}`);
     }
-  }, [currentPage, pages.length, goToPage, nextChapter, navigate, mangaId]);
+  }, [currentPage, pages, goToPage, nextChapter, navigate, mangaId]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -88,7 +100,7 @@ const ChapterReader = () => {
 
   useEffect(() => {
     setCurrentPage(0);
-    setIsLoading(true);
+    setImageLoading(true);
   }, [chapterId]);
 
   useEffect(() => {
@@ -105,21 +117,22 @@ const ChapterReader = () => {
     }
   };
 
-  if (!manga || !chapter) {
+  if (pagesError) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-6xl">📖</p>
-          <p className="mt-4 text-xl font-medium text-foreground">Chapter not found</p>
-          <Link to="/">
-            <Button className="mt-6">Back to Home</Button>
+          <p className="mt-4 text-xl font-medium text-foreground">Failed to load chapter</p>
+          <p className="mt-2 text-muted-foreground">Please try again later.</p>
+          <Link to={`/manga/${mangaId}`}>
+            <Button className="mt-6">Back to Manga</Button>
           </Link>
         </div>
       </div>
     );
   }
 
-  const progress = ((currentPage + 1) / pages.length) * 100;
+  const progress = pages ? ((currentPage + 1) / pages.length) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -148,8 +161,10 @@ const ChapterReader = () => {
                   </Button>
                 </Link>
                 <div className="hidden sm:block">
-                  <h1 className="line-clamp-1 font-bold text-foreground">{manga.title}</h1>
-                  <p className="text-xs text-muted-foreground">Chapter {chapter.number}</p>
+                  <h1 className="line-clamp-1 font-bold text-foreground">{title}</h1>
+                  <p className="text-xs text-muted-foreground">
+                    Chapter {currentChapter?.attributes.chapter || '?'}
+                  </p>
                 </div>
               </div>
 
@@ -161,33 +176,35 @@ const ChapterReader = () => {
                 >
                   <SelectTrigger className="h-10 w-28 rounded-xl border-border/50 bg-secondary/50 font-medium">
                     <Layers className="mr-2 h-4 w-4" />
-                    <SelectValue />
+                    <SelectValue placeholder="Ch." />
                   </SelectTrigger>
-                  <SelectContent>
-                    {manga.chapters.map((ch) => (
+                  <SelectContent className="max-h-80">
+                    {chapters.map((ch) => (
                       <SelectItem key={ch.id} value={ch.id}>
-                        Ch. {ch.number}
+                        Ch. {ch.attributes.chapter || '?'}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
 
                 {/* Page Select */}
-                <Select
-                  value={currentPage.toString()}
-                  onValueChange={(value) => goToPage(parseInt(value))}
-                >
-                  <SelectTrigger className="h-10 w-24 rounded-xl border-border/50 bg-secondary/50 font-medium">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pages.map((_, i) => (
-                      <SelectItem key={i} value={i.toString()}>
-                        {i + 1} / {pages.length}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {pages && pages.length > 0 && (
+                  <Select
+                    value={currentPage.toString()}
+                    onValueChange={(value) => goToPage(parseInt(value))}
+                  >
+                    <SelectTrigger className="h-10 w-24 rounded-xl border-border/50 bg-secondary/50 font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-80">
+                      {pages.map((_, i) => (
+                        <SelectItem key={i} value={i.toString()}>
+                          {i + 1} / {pages.length}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
                 {/* Settings Sheet */}
                 <Sheet>
@@ -232,6 +249,18 @@ const ChapterReader = () => {
                             <ZoomIn className="h-4 w-4" />
                           </Button>
                         </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="data-saver">Data Saver</Label>
+                          <p className="text-xs text-muted-foreground">Lower quality, faster loading</p>
+                        </div>
+                        <Switch
+                          id="data-saver"
+                          checked={dataSaver}
+                          onCheckedChange={setDataSaver}
+                        />
                       </div>
                     </div>
                   </SheetContent>
@@ -283,18 +312,24 @@ const ChapterReader = () => {
 
           {/* Page Image */}
           <div className="relative">
-            {isLoading && (
+            {(pagesLoading || imageLoading) && (
               <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-secondary">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
               </div>
             )}
-            <img
-              src={pages[currentPage]}
-              alt={`Page ${currentPage + 1}`}
-              className="max-h-[85vh] rounded-2xl shadow-2xl transition-all duration-300"
-              style={{ transform: `scale(${zoom / 100})` }}
-              onLoad={() => setIsLoading(false)}
-            />
+            {pages && pages[currentPage] && (
+              <img
+                src={pages[currentPage]}
+                alt={`Page ${currentPage + 1}`}
+                className={cn(
+                  "max-h-[85vh] rounded-2xl shadow-2xl transition-all duration-300",
+                  imageLoading && "opacity-0"
+                )}
+                style={{ transform: `scale(${zoom / 100})` }}
+                onLoad={() => setImageLoading(false)}
+                onError={() => setImageLoading(false)}
+              />
+            )}
           </div>
         </div>
       </main>
@@ -317,30 +352,36 @@ const ChapterReader = () => {
               >
                 <ChevronLeft className="h-5 w-5" />
                 <span className="hidden sm:inline">
-                  {currentPage === 0 && prevChapter ? `Ch. ${prevChapter.number}` : 'Prev'}
+                  {currentPage === 0 && prevChapter ? `Ch. ${prevChapter.attributes.chapter}` : 'Prev'}
                 </span>
               </Button>
 
               <div className="flex flex-1 items-center gap-4">
-                <Slider
-                  value={[currentPage]}
-                  onValueChange={([value]) => goToPage(value)}
-                  max={pages.length - 1}
-                  className="flex-1"
-                />
-                <span className="w-16 text-center text-sm font-bold text-foreground">
-                  {currentPage + 1} / {pages.length}
-                </span>
+                {pages && (
+                  <>
+                    <Slider
+                      value={[currentPage]}
+                      onValueChange={([value]) => goToPage(value)}
+                      max={pages.length - 1}
+                      className="flex-1"
+                    />
+                    <span className="w-16 text-center text-sm font-bold text-foreground">
+                      {currentPage + 1} / {pages.length}
+                    </span>
+                  </>
+                )}
               </div>
 
               <Button
                 variant="ghost"
                 onClick={goToNextPage}
-                disabled={currentPage === pages.length - 1 && !nextChapter}
+                disabled={pages ? currentPage === pages.length - 1 && !nextChapter : true}
                 className="h-10 gap-2 rounded-xl px-4 font-medium hover:bg-secondary"
               >
                 <span className="hidden sm:inline">
-                  {currentPage === pages.length - 1 && nextChapter ? `Ch. ${nextChapter.number}` : 'Next'}
+                  {pages && currentPage === pages.length - 1 && nextChapter 
+                    ? `Ch. ${nextChapter.attributes.chapter}` 
+                    : 'Next'}
                 </span>
                 <ChevronRight className="h-5 w-5" />
               </Button>
