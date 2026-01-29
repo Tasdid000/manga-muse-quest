@@ -1,19 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { MangaGrid } from '@/components/manga/MangaGrid';
+import { MangaCardAPI } from '@/components/manga/MangaCardAPI';
+import { MangaCardSkeleton } from '@/components/manga/MangaCardSkeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, X, Sparkles, BookOpen } from 'lucide-react';
-import { mangaList, genres } from '@/data/mockData';
+import { Search, Filter, X, BookOpen, Loader2 } from 'lucide-react';
+import { usePopularManhwa, useLatestManhwa, useSearchManhwa, useTags } from '@/hooks/useManhwa';
 
 const Browse = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isDark, setIsDark] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch data based on context
+  const { data: popularData, isLoading: popularLoading } = usePopularManhwa(30);
+  const { data: latestData, isLoading: latestLoading } = useLatestManhwa(30);
+  const { data: searchData, isLoading: searchLoading } = useSearchManhwa(debouncedQuery, 30);
+  const { data: tagsData } = useTags();
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -32,17 +48,41 @@ const Browse = () => {
     );
   };
 
-  const filteredManga = mangaList.filter((manga) => {
-    const matchesSearch = manga.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      manga.author.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGenres = selectedGenres.length === 0 ||
-      selectedGenres.some((g) => manga.genres.includes(g));
-    return matchesSearch && matchesGenres;
-  });
+  // Get genre tags (limit to common ones)
+  const genres = useMemo(() => {
+    if (!tagsData?.data) return [];
+    return tagsData.data
+      .filter(tag => tag.attributes.group === 'genre')
+      .map(tag => ({
+        id: tag.id,
+        name: tag.attributes.name.en
+      }))
+      .slice(0, 15);
+  }, [tagsData]);
+
+  // Determine which data to show
+  const isSearching = debouncedQuery.length > 0;
+  const data = isSearching ? searchData : popularData;
+  const isLoading = isSearching ? searchLoading : popularLoading;
+
+  // Filter by selected genres
+  const filteredManga = useMemo(() => {
+    if (!data?.data) return [];
+    if (selectedGenres.length === 0) return data.data;
+    
+    return data.data.filter(manga => {
+      const mangaTagIds = manga.attributes.tags.map(t => t.id);
+      return selectedGenres.some(g => mangaTagIds.includes(g));
+    });
+  }, [data, selectedGenres]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setSearchParams({ q: searchQuery });
+    if (searchQuery) {
+      setSearchParams({ q: searchQuery });
+    } else {
+      setSearchParams({});
+    }
   };
 
   return (
@@ -57,8 +97,8 @@ const Browse = () => {
               <BookOpen className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-foreground md:text-4xl">Browse Manga</h1>
-              <p className="text-muted-foreground">Discover your next favorite story</p>
+              <h1 className="text-3xl font-black text-foreground md:text-4xl">Browse Manhwa</h1>
+              <p className="text-muted-foreground">Discover your next favorite Korean webtoon</p>
             </div>
           </div>
         </div>
@@ -69,11 +109,14 @@ const Browse = () => {
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by title, author, or keyword..."
+              placeholder="Search manhwa by title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-14 rounded-2xl border-border/50 bg-card/50 pl-12 pr-4 text-lg backdrop-blur-sm transition-all focus:border-primary focus:bg-card focus:shadow-xl"
             />
+            {searchLoading && debouncedQuery && (
+              <Loader2 className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-primary" />
+            )}
           </div>
         </form>
 
@@ -117,18 +160,35 @@ const Browse = () => {
 
         {/* Results Count */}
         <div className="mb-6 text-sm text-muted-foreground">
-          Found <span className="font-bold text-foreground">{filteredManga.length}</span> manga
+          {isLoading ? (
+            'Loading...'
+          ) : (
+            <>
+              Found <span className="font-bold text-foreground">{filteredManga.length}</span> manhwa
+              {isSearching && <span className="ml-1">for "{debouncedQuery}"</span>}
+            </>
+          )}
         </div>
 
         {/* Results */}
-        {filteredManga.length > 0 ? (
-          <MangaGrid manga={filteredManga} />
+        {isLoading ? (
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <MangaCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : filteredManga.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {filteredManga.map((manga, index) => (
+              <MangaCardAPI key={manga.id} manga={manga} index={index} />
+            ))}
+          </div>
         ) : (
           <div className="animate-fade-in rounded-2xl border border-border/30 bg-card/50 py-20 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary">
               <Search className="h-8 w-8 text-muted-foreground" />
             </div>
-            <p className="text-lg font-medium text-foreground">No manga found</p>
+            <p className="text-lg font-medium text-foreground">No manhwa found</p>
             <p className="mt-2 text-muted-foreground">Try adjusting your search or filters.</p>
             <Button 
               variant="outline" 
