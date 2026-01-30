@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, Eye, Clock, BookOpen, Heart, Share2, Play, ChevronRight, Users, Calendar, Loader2 } from 'lucide-react';
+import { Star, Eye, Clock, BookOpen, Heart, Share2, Play, ChevronRight, Users, Calendar, Loader2, RotateCcw } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -9,14 +9,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useManga, useMangaChapters } from '@/hooks/useManhwa';
 import { getTitle, getCoverUrl, getDescription, getGenres, mapStatus, getAuthorName, getArtistName } from '@/lib/api/mangadex';
+import { useFavorites } from '@/hooks/useFavorites';
+import { useReadingHistory } from '@/hooks/useReadingHistory';
 
 const MangaDetail = () => {
   const { mangaId } = useParams();
   const [isDark, setIsDark] = useState(true);
-  const [isFavorite, setIsFavorite] = useState(false);
+  
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { getProgress } = useReadingHistory();
 
   const { data: mangaData, isLoading: mangaLoading, error: mangaError } = useManga(mangaId || '');
   const { data: chaptersData, isLoading: chaptersLoading } = useMangaChapters(mangaId || '', 500);
+
+  const readingProgress = mangaId ? getProgress(mangaId) : undefined;
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -220,7 +226,21 @@ const MangaDetail = () => {
                 </p>
 
                 <div className="flex flex-wrap gap-4">
-                  {firstChapter && (
+                  {/* Continue Reading Button */}
+                  {readingProgress && (
+                    <Link to={`/manga/${manga.id}/chapter/${readingProgress.chapterId}`}>
+                      <Button 
+                        size="lg" 
+                        className="group h-14 gap-3 rounded-xl bg-gradient-to-r from-accent via-orange-600 to-accent bg-[length:200%_100%] px-8 text-lg font-bold shadow-xl shadow-accent/30 transition-all duration-500 hover:bg-[position:100%_0] hover:shadow-2xl"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-foreground/20 transition-transform group-hover:scale-110">
+                          <RotateCcw className="h-4 w-4" />
+                        </div>
+                        Continue Ch. {readingProgress.chapterNumber}
+                      </Button>
+                    </Link>
+                  )}
+                  {firstChapter && !readingProgress && (
                     <Link to={`/manga/${manga.id}/chapter/${firstChapter.id}`}>
                       <Button 
                         size="lg" 
@@ -249,13 +269,17 @@ const MangaDetail = () => {
                     size="lg" 
                     variant="outline" 
                     className={`h-14 w-14 rounded-xl border-2 transition-all ${
-                      isFavorite 
+                      isFavorite(manga.id) 
                         ? 'border-red-500 bg-red-500/10 text-red-500' 
                         : 'border-border/50 hover:border-red-500 hover:bg-red-500/10 hover:text-red-500'
                     }`}
-                    onClick={() => setIsFavorite(!isFavorite)}
+                    onClick={() => toggleFavorite({
+                      mangaId: manga.id,
+                      mangaTitle: title,
+                      coverUrl: cover,
+                    })}
                   >
-                    <Heart className={`h-6 w-6 ${isFavorite ? 'fill-current' : ''}`} />
+                    <Heart className={`h-6 w-6 ${isFavorite(manga.id) ? 'fill-current' : ''}`} />
                   </Button>
                   <Button 
                     size="lg" 

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import {
   fetchPopularManhwa,
   fetchLatestManhwa,
@@ -19,6 +19,41 @@ export function usePopularManhwa(limit = 20, offset = 0) {
     queryKey: ['manhwa', 'popular', limit, offset],
     queryFn: () => fetchPopularManhwa(limit, offset),
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+// Hook for infinite popular manhwa
+export function useInfinitePopularManhwa(limit = 20) {
+  return useInfiniteQuery({
+    queryKey: ['manhwa', 'popular', 'infinite', limit],
+    queryFn: ({ pageParam = 0 }) => fetchPopularManhwa(limit, pageParam),
+    getNextPageParam: (lastPage, allPages) => {
+      const totalFetched = allPages.reduce((acc, page) => acc + (page.data?.length || 0), 0);
+      if (lastPage.total && totalFetched < lastPage.total) {
+        return totalFetched;
+      }
+      return undefined;
+    },
+    initialPageParam: 0,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// Hook for infinite search manhwa
+export function useInfiniteSearchManhwa(query: string, limit = 20) {
+  return useInfiniteQuery({
+    queryKey: ['manhwa', 'search', 'infinite', query, limit],
+    queryFn: ({ pageParam = 0 }) => searchManhwa(query, limit, pageParam),
+    getNextPageParam: (lastPage, allPages) => {
+      const totalFetched = allPages.reduce((acc, page) => acc + (page.data?.length || 0), 0);
+      if (lastPage.total && totalFetched < lastPage.total) {
+        return totalFetched;
+      }
+      return undefined;
+    },
+    initialPageParam: 0,
+    enabled: query.length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

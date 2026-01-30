@@ -23,7 +23,8 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useChapterPages, useMangaChapters, useManga } from '@/hooks/useManhwa';
-import { getTitle } from '@/lib/api/mangadex';
+import { getTitle, getCoverUrl } from '@/lib/api/mangadex';
+import { useReadingHistory } from '@/hooks/useReadingHistory';
 import { cn } from '@/lib/utils';
 
 const ChapterReader = () => {
@@ -97,6 +98,23 @@ const ChapterReader = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrevPage, goToNextPage]);
+
+  const { updateProgress } = useReadingHistory();
+
+  // Save reading progress
+  useEffect(() => {
+    if (manga && chapterId && currentChapter && pages) {
+      updateProgress({
+        mangaId: manga.id,
+        mangaTitle: getTitle(manga),
+        coverUrl: getCoverUrl(manga, 'small'),
+        chapterId: chapterId,
+        chapterNumber: currentChapter.attributes.chapter || '?',
+        pageNumber: currentPage,
+        totalPages: pages.length,
+      });
+    }
+  }, [manga, chapterId, currentChapter, currentPage, pages, updateProgress]);
 
   useEffect(() => {
     setCurrentPage(0);
