@@ -1,4 +1,11 @@
 const BASE_URL = 'https://api.mangadex.org';
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+
+// Helper to make CORS-proxied requests
+async function fetchWithCors(url: string): Promise<Response> {
+  const response = await fetch(`${CORS_PROXY}${encodeURIComponent(url)}`);
+  return response;
+}
 
 export interface MangaDexManga {
   id: string;
@@ -113,21 +120,9 @@ export function mapStatus(status: string): 'ongoing' | 'completed' | 'hiatus' {
 
 // Fetch popular manga (manhwa specifically)
 export async function fetchPopularManhwa(limit = 20, offset = 0): Promise<MangaDexResponse<MangaDexManga[]>> {
-  const params = new URLSearchParams({
-    limit: limit.toString(),
-    offset: offset.toString(),
-    'includes[]': ['cover_art', 'author', 'artist'].join(','),
-    'order[followedCount]': 'desc',
-    'originalLanguage[]': 'ko',
-    'availableTranslatedLanguage[]': 'en',
-    hasAvailableChapters: 'true',
-    'contentRating[]': ['safe', 'suggestive'].join(','),
-  });
-  
-  // Need to add includes separately for proper array format
   const url = `${BASE_URL}/manga?limit=${limit}&offset=${offset}&includes[]=cover_art&includes[]=author&includes[]=artist&order[followedCount]=desc&originalLanguage[]=ko&availableTranslatedLanguage[]=en&hasAvailableChapters=true&contentRating[]=safe&contentRating[]=suggestive`;
   
-  const response = await fetch(url);
+  const response = await fetchWithCors(url);
   if (!response.ok) throw new Error('Failed to fetch manhwa');
   return response.json();
 }
@@ -136,7 +131,7 @@ export async function fetchPopularManhwa(limit = 20, offset = 0): Promise<MangaD
 export async function fetchLatestManhwa(limit = 20, offset = 0): Promise<MangaDexResponse<MangaDexManga[]>> {
   const url = `${BASE_URL}/manga?limit=${limit}&offset=${offset}&includes[]=cover_art&includes[]=author&includes[]=artist&order[latestUploadedChapter]=desc&originalLanguage[]=ko&availableTranslatedLanguage[]=en&hasAvailableChapters=true&contentRating[]=safe&contentRating[]=suggestive`;
   
-  const response = await fetch(url);
+  const response = await fetchWithCors(url);
   if (!response.ok) throw new Error('Failed to fetch latest manhwa');
   return response.json();
 }
@@ -145,7 +140,7 @@ export async function fetchLatestManhwa(limit = 20, offset = 0): Promise<MangaDe
 export async function searchManhwa(query: string, limit = 20, offset = 0): Promise<MangaDexResponse<MangaDexManga[]>> {
   const url = `${BASE_URL}/manga?limit=${limit}&offset=${offset}&includes[]=cover_art&includes[]=author&includes[]=artist&title=${encodeURIComponent(query)}&originalLanguage[]=ko&availableTranslatedLanguage[]=en&contentRating[]=safe&contentRating[]=suggestive`;
   
-  const response = await fetch(url);
+  const response = await fetchWithCors(url);
   if (!response.ok) throw new Error('Failed to search manhwa');
   return response.json();
 }
@@ -154,7 +149,7 @@ export async function searchManhwa(query: string, limit = 20, offset = 0): Promi
 export async function fetchMangaById(id: string): Promise<MangaDexResponse<MangaDexManga>> {
   const url = `${BASE_URL}/manga/${id}?includes[]=cover_art&includes[]=author&includes[]=artist`;
   
-  const response = await fetch(url);
+  const response = await fetchWithCors(url);
   if (!response.ok) throw new Error('Failed to fetch manga');
   return response.json();
 }
@@ -163,7 +158,7 @@ export async function fetchMangaById(id: string): Promise<MangaDexResponse<Manga
 export async function fetchMangaChapters(mangaId: string, limit = 100, offset = 0): Promise<MangaDexResponse<MangaDexChapter[]>> {
   const url = `${BASE_URL}/manga/${mangaId}/feed?limit=${limit}&offset=${offset}&translatedLanguage[]=en&order[chapter]=desc&includes[]=scanlation_group`;
   
-  const response = await fetch(url);
+  const response = await fetchWithCors(url);
   if (!response.ok) throw new Error('Failed to fetch chapters');
   return response.json();
 }
@@ -172,7 +167,7 @@ export async function fetchMangaChapters(mangaId: string, limit = 100, offset = 
 export async function fetchChapterPages(chapterId: string): Promise<{ baseUrl: string; chapter: { hash: string; data: string[]; dataSaver: string[] } }> {
   const url = `${BASE_URL}/at-home/server/${chapterId}`;
   
-  const response = await fetch(url);
+  const response = await fetchWithCors(url);
   if (!response.ok) throw new Error('Failed to fetch chapter pages');
   return response.json();
 }
@@ -187,7 +182,7 @@ export function getPageUrls(baseUrl: string, hash: string, pages: string[], data
 export async function fetchManhwaByTag(tagId: string, limit = 20, offset = 0): Promise<MangaDexResponse<MangaDexManga[]>> {
   const url = `${BASE_URL}/manga?limit=${limit}&offset=${offset}&includes[]=cover_art&includes[]=author&includes[]=artist&includedTags[]=${tagId}&originalLanguage[]=ko&availableTranslatedLanguage[]=en&hasAvailableChapters=true&contentRating[]=safe&contentRating[]=suggestive&order[followedCount]=desc`;
   
-  const response = await fetch(url);
+  const response = await fetchWithCors(url);
   if (!response.ok) throw new Error('Failed to fetch manhwa by tag');
   return response.json();
 }
@@ -196,7 +191,7 @@ export async function fetchManhwaByTag(tagId: string, limit = 20, offset = 0): P
 export async function fetchTags(): Promise<MangaDexResponse<Array<{ id: string; attributes: { name: { en: string }; group: string } }>>> {
   const url = `${BASE_URL}/manga/tag`;
   
-  const response = await fetch(url);
+  const response = await fetchWithCors(url);
   if (!response.ok) throw new Error('Failed to fetch tags');
   return response.json();
 }
