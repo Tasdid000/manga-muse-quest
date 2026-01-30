@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, X, BookOpen, Loader2 } from 'lucide-react';
-import { usePopularManhwa, useLatestManhwa, useSearchManhwa, useTags } from '@/hooks/useManhwa';
+import { useInfinitePopularManhwa, useInfiniteSearchManhwa, useTags } from '@/hooks/useManhwa';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 const Browse = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -25,10 +26,25 @@ const Browse = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch data based on context
-  const { data: popularData, isLoading: popularLoading } = usePopularManhwa(30);
-  const { data: latestData, isLoading: latestLoading } = useLatestManhwa(30);
-  const { data: searchData, isLoading: searchLoading } = useSearchManhwa(debouncedQuery, 30);
+  // Fetch data with infinite scroll
+  const isSearching = debouncedQuery.length > 0;
+  
+  const {
+    data: popularData,
+    isLoading: popularLoading,
+    isFetchingNextPage: popularFetchingNext,
+    fetchNextPage: fetchNextPopular,
+    hasNextPage: hasNextPopular,
+  } = useInfinitePopularManhwa(20);
+
+  const {
+    data: searchData,
+    isLoading: searchLoading,
+    isFetchingNextPage: searchFetchingNext,
+    fetchNextPage: fetchNextSearch,
+    hasNextPage: hasNextSearch,
+  } = useInfiniteSearchManhwa(debouncedQuery, 20);
+
   const { data: tagsData } = useTags();
 
   useEffect(() => {
@@ -60,21 +76,32 @@ const Browse = () => {
       .slice(0, 15);
   }, [tagsData]);
 
-  // Determine which data to show
-  const isSearching = debouncedQuery.length > 0;
-  const data = isSearching ? searchData : popularData;
-  const isLoading = isSearching ? searchLoading : popularLoading;
+  // Combine pages from infinite query
+  const allManga = useMemo(() => {
+    const data = isSearching ? searchData : popularData;
+    if (!data?.pages) return [];
+    return data.pages.flatMap(page => page.data || []);
+  }, [isSearching, searchData, popularData]);
 
   // Filter by selected genres
   const filteredManga = useMemo(() => {
-    if (!data?.data) return [];
-    if (selectedGenres.length === 0) return data.data;
+    if (selectedGenres.length === 0) return allManga;
     
-    return data.data.filter(manga => {
+    return allManga.filter(manga => {
       const mangaTagIds = manga.attributes.tags.map(t => t.id);
       return selectedGenres.some(g => mangaTagIds.includes(g));
     });
-  }, [data, selectedGenres]);
+  }, [allManga, selectedGenres]);
+
+  // Infinite scroll setup
+  const { loadMoreRef } = useInfiniteScroll({
+    hasNextPage: isSearching ? (hasNextSearch || false) : (hasNextPopular || false),
+    isFetching: isSearching ? searchFetchingNext : popularFetchingNext,
+    fetchNextPage: isSearching ? fetchNextSearch : fetchNextPopular,
+  });
+
+  const isLoading = isSearching ? searchLoading : popularLoading;
+  const isFetchingMore = isSearching ? searchFetchingNext : popularFetchingNext;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,11 +205,23 @@ const Browse = () => {
             ))}
           </div>
         ) : filteredManga.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {filteredManga.map((manga, index) => (
-              <MangaCardAPI key={manga.id} manga={manga} index={index} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {filteredManga.map((manga, index) => (
+                <MangaCardAPI key={manga.id} manga={manga} index={index} />
+              ))}
+            </div>
+            
+            {/* Infinite Scroll Trigger */}
+            <div ref={loadMoreRef} className="flex justify-center py-8">
+              {isFetchingMore && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span>Loading more...</span>
+                </div>
+              )}
+            </div>
+          </>
         ) : (
           <div className="animate-fade-in rounded-2xl border border-border/30 bg-card/50 py-20 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary">
