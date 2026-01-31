@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, BookOpen, Moon, Sun, Sparkles, Flame } from 'lucide-react';
+import { Search, Menu, X, BookOpen, Moon, Sun, History, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,7 @@ export function Header({ isDark, toggleTheme }: HeaderProps) {
     { href: '/genres', label: 'Genres' },
     { href: '/latest', label: 'Latest' },
     { href: '/popular', label: 'Popular' },
+    { href: '/history', label: 'History', icon: History },
   ];
 
   return (
@@ -106,13 +107,15 @@ export function Header({ isDark, toggleTheme }: HeaderProps) {
             </div>
           </form>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden h-11 w-11 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-accent/20 hover:text-accent sm:flex"
-          >
-            <Flame className="h-5 w-5" />
-          </Button>
+          <Link to="/history">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden h-11 w-11 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-primary/20 hover:text-primary sm:flex"
+            >
+              <History className="h-5 w-5" />
+            </Button>
+          </Link>
 
           <Button
             variant="ghost"

@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import MangaDetail from "./pages/MangaDetail";
 import ChapterReader from "./pages/ChapterReader";
 import Browse from "./pages/Browse";
+import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/latest" element={<Browse />} />
           <Route path="/genres" element={<Browse />} />
           <Route path="/genres/:genreId" element={<Browse />} />
+          <Route path="/history" element={<History />} />
           <Route path="/manga/:mangaId" element={<MangaDetail />} />
           <Route path="/manga/:mangaId/chapter/:chapterId" element={<ChapterReader />} />
           <Route path="*" element={<NotFound />} />
