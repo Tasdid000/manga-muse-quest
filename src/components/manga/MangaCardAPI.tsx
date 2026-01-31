@@ -36,7 +36,9 @@ export function MangaCardAPI({
 
   // Generate pseudo-random rating based on manga id for display
   const rating = (4 + (parseInt(manga.id.slice(0, 8), 16) % 10) / 10).toFixed(1);
-  const views = Math.floor((parseInt(manga.id.slice(8, 16), 16) % 9000) + 1000) * 1000;
+  // Use absolute value and modulo to ensure positive views
+  const viewsHash = Math.abs(parseInt(manga.id.replace(/-/g, '').slice(0, 8), 16));
+  const views = ((viewsHash % 9000) + 1000) * 1000;
 
   const formatViews = (views: number) => {
     if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M`;

@@ -90,9 +90,10 @@ const MangaDetail = () => {
   const author = getAuthorName(manga);
   const artist = getArtistName(manga);
 
-  // Generate pseudo stats
+  // Generate pseudo stats (ensure positive values)
   const rating = (4 + (parseInt(manga.id.slice(0, 8), 16) % 10) / 10).toFixed(1);
-  const views = Math.floor((parseInt(manga.id.slice(8, 16), 16) % 9000) + 1000) * 1000;
+  const viewsHash = Math.abs(parseInt(manga.id.replace(/-/g, '').slice(0, 8), 16));
+  const views = ((viewsHash % 9000) + 1000) * 1000;
 
   const formatViews = (views: number) => {
     if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M`;
