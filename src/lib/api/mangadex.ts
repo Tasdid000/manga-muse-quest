@@ -1,10 +1,30 @@
 const BASE_URL = 'https://api.mangadex.org';
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
-// Helper to make CORS-proxied requests
+// List of CORS proxies to try (fallback mechanism)
+const CORS_PROXIES = [
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+];
+
+// Helper to make CORS-proxied requests with fallback
 async function fetchWithCors(url: string): Promise<Response> {
-  const response = await fetch(`${CORS_PROXY}${encodeURIComponent(url)}`);
-  return response;
+  let lastError: Error | null = null;
+  
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const response = await fetch(`${proxy}${encodeURIComponent(url)}`, {
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
+      if (response.ok) {
+        return response;
+      }
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`Proxy ${proxy} failed, trying next...`);
+    }
+  }
+  
+  throw lastError || new Error('All CORS proxies failed');
 }
 
 export interface MangaDexManga {
