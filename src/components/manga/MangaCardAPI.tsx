@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Star, Eye, Clock, BookOpen, Flame } from 'lucide-react';
+import { Star, Eye, Clock, BookOpen, Flame, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { 
@@ -10,29 +10,30 @@ import {
   mapStatus,
   getDescription 
 } from '@/lib/api/mangadex';
+import { formatDistanceToNow } from 'date-fns';
 
 interface MangaCardAPIProps {
   manga: MangaDexManga;
   variant?: 'default' | 'compact' | 'featured';
   index?: number;
-  chaptersCount?: number;
-  latestChapter?: string;
-  lastUpdated?: string;
 }
 
 export function MangaCardAPI({ 
   manga, 
   variant = 'default', 
   index = 0,
-  chaptersCount = 0,
-  latestChapter,
-  lastUpdated = 'Recently'
 }: MangaCardAPIProps) {
   const title = getTitle(manga);
   const cover = getCoverUrl(manga, 'medium');
   const genres = getGenres(manga);
   const status = mapStatus(manga.attributes.status);
   const description = getDescription(manga);
+  const year = manga.attributes.year;
+
+  // Format the last updated date
+  const lastUpdated = manga.attributes.updatedAt 
+    ? formatDistanceToNow(new Date(manga.attributes.updatedAt), { addSuffix: true })
+    : 'Recently';
 
   // Generate pseudo-random rating based on manga id for display
   const rating = (4 + (parseInt(manga.id.slice(0, 8), 16) % 10) / 10).toFixed(1);
@@ -77,18 +78,20 @@ export function MangaCardAPI({
             {title}
           </h3>
           <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
-            <BookOpen className="h-3.5 w-3.5" />
-            <span>{latestChapter ? `Chapter ${latestChapter}` : `${chaptersCount} Chapters`}</span>
+            <Clock className="h-3.5 w-3.5" />
+            <span className="line-clamp-1">{lastUpdated}</span>
           </p>
           <div className="mt-3 flex items-center gap-4">
             <div className="flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium">
               <Star className="h-3 w-3 fill-accent text-accent" />
               <span className="text-accent">{rating}</span>
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>{lastUpdated}</span>
-            </div>
+            {year && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                <span>{year}</span>
+              </div>
+            )}
           </div>
         </div>
       </Link>
@@ -178,12 +181,12 @@ export function MangaCardAPI({
 
           <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <BookOpen className="h-4 w-4" />
-              <span className="font-medium">{chaptersCount || '?'} Chapters</span>
+              <Clock className="h-4 w-4" />
+              <span className="font-medium line-clamp-1">{lastUpdated}</span>
             </div>
-            {variant !== 'featured' && latestChapter && (
+            {year && (
               <span className="rounded-full bg-secondary/50 px-2 py-0.5 text-xs font-medium">
-                Ch. {latestChapter}
+                {year}
               </span>
             )}
           </div>
