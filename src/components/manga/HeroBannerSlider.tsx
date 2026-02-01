@@ -30,17 +30,27 @@ export function HeroBannerSlider({ mangaList }: HeroBannerSliderProps) {
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
   // Fetch chapter counts for all manga in the slider
-  const { data: mangaWithChapters } = useQuery({
+  const { data: mangaWithChapters, isLoading: chaptersLoading } = useQuery({
     queryKey: ['heroChapters', mangaList.map(m => m.id).join(',')],
     queryFn: async () => {
       const results: MangaWithChapters[] = await Promise.all(
         mangaList.slice(0, 5).map(async (manga) => {
           try {
-            const chaptersData = await fetchMangaChapters(manga.id, 1, 0);
+            const chaptersData = await fetchMangaChapters(manga.id, 100, 0);
+            // Get total count and find the highest chapter number
+            const chapters = chaptersData.data || [];
+            const chapterNumbers = chapters
+              .map(ch => parseFloat(ch.attributes?.chapter || '0'))
+              .filter(n => !isNaN(n) && n > 0);
+            
+            const latestChapter = chapterNumbers.length > 0 
+              ? Math.max(...chapterNumbers).toString()
+              : null;
+            
             return {
               manga,
-              chapterCount: chaptersData.total || 0,
-              latestChapter: chaptersData.data?.[0]?.attributes?.chapter || null
+              chapterCount: chaptersData.total || chapters.length,
+              latestChapter
             };
           } catch {
             return { manga, chapterCount: 0, latestChapter: null };
@@ -187,9 +197,11 @@ export function HeroBannerSlider({ mangaList }: HeroBannerSliderProps) {
               </div>
               <div>
                 <p className="text-2xl font-black text-foreground">
-                  {currentItem.chapterCount > 0 ? currentItem.chapterCount : '...'}
+                  {chaptersLoading ? '...' : currentItem.chapterCount > 0 ? currentItem.chapterCount : 'N/A'}
                 </p>
-                <p className="text-xs text-muted-foreground">Chapters</p>
+                <p className="text-xs text-muted-foreground">
+                  {currentItem.chapterCount > 0 ? 'Chapters' : 'No EN chapters'}
+                </p>
               </div>
             </div>
 
@@ -237,11 +249,15 @@ export function HeroBannerSlider({ mangaList }: HeroBannerSliderProps) {
               alt={title}
               className="relative h-[450px] w-[320px] rounded-2xl object-cover shadow-2xl transition-all duration-500"
             />
-            {currentItem.latestChapter && (
+            {currentItem.latestChapter ? (
               <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-lg">
                 Latest: Ch. {currentItem.latestChapter}
               </div>
-            )}
+            ) : currentItem.chapterCount > 0 ? (
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-lg">
+                {currentItem.chapterCount} Chapters
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
