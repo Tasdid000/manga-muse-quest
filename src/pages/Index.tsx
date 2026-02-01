@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { HeroBanner } from '@/components/manga/HeroBanner';
+import { HeroBannerSlider } from '@/components/manga/HeroBannerSlider';
 import { GenreList } from '@/components/manga/GenreList';
 import { MangaCardAPI } from '@/components/manga/MangaCardAPI';
 import { MangaCardSkeleton } from '@/components/manga/MangaCardSkeleton';
 import { usePopularManhwa, useLatestManhwa } from '@/hooks/useManhwa';
 import { useReadingHistory } from '@/hooks/useReadingHistory';
-import { getTitle, getCoverUrl, getDescription, getGenres, mapStatus, getAuthorName } from '@/lib/api/mangadex';
 import { genres } from '@/data/mockData';
 import { Flame, Clock, Crown, ChevronRight, History, BookOpen, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -30,29 +29,14 @@ const Index = () => {
     document.documentElement.classList.toggle('dark');
   };
 
-  // Transform first popular manga for hero banner
-  const featuredManga = popularData?.data?.[0] ? {
-    id: popularData.data[0].id,
-    title: getTitle(popularData.data[0]),
-    cover: getCoverUrl(popularData.data[0], 'large'),
-    author: getAuthorName(popularData.data[0]),
-    status: mapStatus(popularData.data[0].attributes.status),
-    genres: getGenres(popularData.data[0]),
-    rating: 4.9,
-    views: 2500000,
-    synopsis: getDescription(popularData.data[0]),
-    chapters: [],
-    lastUpdated: 'Recently'
-  } : null;
-
   return (
     <div className="min-h-screen bg-background">
       <Header isDark={isDark} toggleTheme={toggleTheme} />
       
       <main>
-        {/* Hero Section */}
-        {featuredManga ? (
-          <HeroBanner manga={featuredManga} />
+        {/* Hero Section with Slider */}
+        {popularData?.data && popularData.data.length > 0 ? (
+          <HeroBannerSlider mangaList={popularData.data.slice(0, 5)} />
         ) : (
           <div className="relative h-[70vh] min-h-[500px] animate-pulse bg-secondary" />
         )}
