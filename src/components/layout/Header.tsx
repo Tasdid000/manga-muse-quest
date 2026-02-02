@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, BookOpen, Moon, Sun, History, Flame } from 'lucide-react';
+import { Search, Menu, X, BookOpen, Moon, Sun, History, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface HeaderProps {
   isDark: boolean;
@@ -16,6 +24,7 @@ export function Header({ isDark, toggleTheme }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -107,6 +116,50 @@ export function Header({ isDark, toggleTheme }: HeaderProps) {
             </div>
           </form>
 
+          {/* User Menu */}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden h-11 w-11 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-primary/20 hover:text-primary sm:flex"
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    My Account
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/history" className="cursor-pointer">
+                    <History className="mr-2 h-4 w-4" />
+                    Reading History
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/login">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden h-11 w-11 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-primary/20 hover:text-primary sm:flex"
+              >
+                <User className="h-5 w-5" />
+              </Button>
+            </Link>
+          )}
+
           <Link to="/history">
             <Button
               variant="ghost"
@@ -193,6 +246,50 @@ export function Header({ isDark, toggleTheme }: HeaderProps) {
                 </Link>
               );
             })}
+            
+            {/* Auth Links for Mobile */}
+            <div className="mt-4 pt-4 border-t border-border/30">
+              {user ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-xl px-4 py-3.5 text-base font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  >
+                    <User className="h-5 w-5" />
+                    My Account
+                  </Link>
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setIsMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-4 py-3.5 text-base font-semibold text-destructive hover:bg-destructive/10"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-xl px-4 py-3.5 text-base font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  >
+                    <User className="h-5 w-5" />
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-xl px-4 py-3.5 text-base font-semibold text-primary hover:bg-primary/10"
+                  >
+                    Create Account
+                  </Link>
+                </>
+              )}
+            </div>
           </nav>
         </div>
       </div>
