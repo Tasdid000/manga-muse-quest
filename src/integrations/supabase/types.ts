@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          manga_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          manga_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          manga_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       following: {
         Row: {
           cover_url: string | null
