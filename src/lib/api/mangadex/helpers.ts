@@ -148,3 +148,26 @@ export function formatChapterNumber(chapter: string | null): string {
   if (isNaN(num)) return chapter;
   return Number.isInteger(num) ? num.toString() : num.toFixed(1);
 }
+
+// ==================== Input Validation ====================
+
+/**
+ * Validates that a string is a valid MangaDex UUID (v4 format).
+ * MangaDex uses UUID v4 for all manga and chapter IDs.
+ */
+export function isValidMangaDexId(id: string): boolean {
+  if (!id || typeof id !== 'string') return false;
+  // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx where y is 8, 9, a, or b
+  const uuidV4Regex = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+  return uuidV4Regex.test(id);
+}
+
+/**
+ * Validates and sanitizes a MangaDex ID, throwing an error if invalid.
+ */
+export function validateMangaDexId(id: string, fieldName = 'ID'): string {
+  if (!isValidMangaDexId(id)) {
+    throw new Error(`Invalid ${fieldName} format. Expected a valid UUID.`);
+  }
+  return id;
+}

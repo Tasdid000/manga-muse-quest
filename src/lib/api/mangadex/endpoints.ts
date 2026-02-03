@@ -1,5 +1,5 @@
 import { apiRequest } from './client';
-import { buildRatings, buildOriginalLanguage } from './helpers';
+import { buildRatings, buildOriginalLanguage, validateMangaDexId } from './helpers';
 import type {
   MangaDexResponse,
   MangaDexManga,
@@ -156,12 +156,15 @@ export const fetchLatestAdultManga = (limit = 20, offset = 0) =>
 export async function fetchMangaById(
   id: string
 ): Promise<MangaDexResponse<MangaDexManga>> {
+  // Validate manga ID to prevent URL injection
+  const validatedId = validateMangaDexId(id, 'manga ID');
+  
   const q = new URLSearchParams();
   q.append('includes[]', 'cover_art');
   q.append('includes[]', 'author');
   q.append('includes[]', 'artist');
 
-  return apiRequest<MangaDexResponse<MangaDexManga>>(`/manga/${id}`, q);
+  return apiRequest<MangaDexResponse<MangaDexManga>>(`/manga/${validatedId}`, q);
 }
 
 // ==================== Chapters ====================
@@ -173,6 +176,9 @@ export async function fetchMangaChapters(
   translatedLanguage: string[] = ['en'],
   rating: RatingMode = 'all'
 ): Promise<MangaDexResponse<MangaDexChapter[]>> {
+  // Validate manga ID to prevent URL injection
+  const validatedMangaId = validateMangaDexId(mangaId, 'manga ID');
+  
   const q = new URLSearchParams();
   q.set('limit', String(limit));
   q.set('offset', String(offset));
@@ -189,7 +195,7 @@ export async function fetchMangaChapters(
   q.append('order[publishAt]', 'desc');
 
   return apiRequest<MangaDexResponse<MangaDexChapter[]>>(
-    `/manga/${mangaId}/feed`,
+    `/manga/${validatedMangaId}/feed`,
     q
   );
 }
@@ -197,8 +203,11 @@ export async function fetchMangaChapters(
 export async function fetchChapterPagesData(
   chapterId: string
 ): Promise<ChapterPagesResponse> {
+  // Validate chapter ID to prevent URL injection
+  const validatedChapterId = validateMangaDexId(chapterId, 'chapter ID');
+  
   return apiRequest<ChapterPagesResponse>(
-    `/at-home/server/${chapterId}`,
+    `/at-home/server/${validatedChapterId}`,
     undefined,
     { skipCache: true } // Don't cache page data
   );
