@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, Eye, Clock, BookOpen, Heart, Share2, Play, ChevronRight, Users, Calendar, Loader2, RotateCcw } from 'lucide-react';
+import { Star, Eye, Clock, BookOpen, Heart, Share2, Play, ChevronRight, Users, Calendar, Loader2, RotateCcw, MessageSquare } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { useManga, useMangaChapters } from '@/hooks/useManhwa';
 import { getTitle, getCoverUrl, getDescription, getGenres, mapStatus, getAuthorName, getArtistName } from '@/lib/api/mangadex';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useReadingHistory } from '@/hooks/useReadingHistory';
+import { CommentsSection } from '@/components/manga/CommentsSection';
 
 const MangaDetail = () => {
   const { mangaId } = useParams();
@@ -310,7 +311,7 @@ const MangaDetail = () => {
                 value="comments" 
                 className="h-full rounded-lg px-8 text-base font-medium data-[state=active]:bg-background data-[state=active]:shadow-lg"
               >
-                <Users className="mr-2 h-5 w-5" />
+                <MessageSquare className="mr-2 h-5 w-5" />
                 Comments
               </TabsTrigger>
             </TabsList>
@@ -361,13 +362,7 @@ const MangaDetail = () => {
             </TabsContent>
 
             <TabsContent value="comments" className="mt-0">
-              <div className="rounded-2xl border border-border/30 bg-card/50 p-12 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary">
-                  <Users className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <p className="text-lg font-medium text-foreground">Comments coming soon!</p>
-                <p className="mt-2 text-muted-foreground">Be the first to share your thoughts.</p>
-              </div>
+              <CommentsSection mangaId={manga.id} />
             </TabsContent>
           </Tabs>
         </section>

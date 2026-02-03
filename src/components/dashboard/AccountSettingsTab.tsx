@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User, Mail, LogOut } from 'lucide-react';
+import { Loader2, User, Mail, LogOut, Edit3, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function AccountSettingsTab() {
@@ -70,42 +70,63 @@ export default function AccountSettingsTab() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+      {/* Profile Information Card */}
+      <Card className="border-border/30 bg-gradient-to-br from-card to-primary/5 overflow-hidden">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <User className="h-5 w-5 text-primary" />
+            </div>
             Profile Information
           </CardTitle>
           <CardDescription>Update your account profile information</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+          <div className="space-y-3">
+            <Label htmlFor="username" className="text-sm font-medium">Username</Label>
             {isEditing ? (
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Input
                   id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter your username"
+                  className="flex-1 h-11 rounded-xl border-border/50 focus:border-primary"
                 />
                 <Button
                   onClick={() => updateProfileMutation.mutate(username)}
                   disabled={updateProfileMutation.isPending}
+                  className="h-11 px-4 rounded-xl"
                 >
-                  {updateProfileMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {updateProfileMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
                   )}
-                  Save
                 </Button>
-                <Button variant="outline" onClick={() => setIsEditing(false)}>
-                  Cancel
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setUsername(profile?.username || '');
+                  }}
+                  className="h-11 px-4 rounded-xl border-border/50"
+                >
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-foreground">{profile?.username || 'Not set'}</span>
-                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/30 border border-border/30">
+                <span className="flex-1 text-foreground font-medium">
+                  {profile?.username || 'Not set'}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsEditing(true)}
+                  className="h-9 px-4 rounded-lg hover:bg-primary/10 hover:text-primary"
+                >
+                  <Edit3 className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
               </div>
@@ -114,33 +135,45 @@ export default function AccountSettingsTab() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
+      {/* Email Card */}
+      <Card className="border-border/30 bg-gradient-to-br from-card to-secondary/10">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center">
+              <Mail className="h-5 w-5 text-muted-foreground" />
+            </div>
             Email Address
           </CardTitle>
           <CardDescription>Your account email address</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-foreground">{user?.email}</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Email changes are not supported at this time
-          </p>
+          <div className="p-4 rounded-xl bg-secondary/30 border border-border/30">
+            <p className="text-foreground font-medium">{user?.email}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Email changes are not supported at this time
+            </p>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LogOut className="h-5 w-5" />
+      {/* Account Actions Card */}
+      <Card className="border-border/30 bg-gradient-to-br from-card to-destructive/5">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+              <LogOut className="h-5 w-5 text-destructive" />
+            </div>
             Account Actions
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Separator />
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button variant="destructive" onClick={handleLogout}>
+          <Separator className="bg-border/30" />
+          <div className="pt-2">
+            <Button 
+              variant="destructive" 
+              onClick={handleLogout}
+              className="rounded-xl h-11 px-6"
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </Button>
