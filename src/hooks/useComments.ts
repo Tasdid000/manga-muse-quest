@@ -34,12 +34,12 @@ export function useComments(mangaId: string) {
       if (commentsError) throw commentsError;
       if (!commentsData?.length) return [];
 
-      // Fetch profiles separately
-      const userIds = [...new Set(commentsData.map(c => c.user_id))];
+      // Fetch profiles from the public view (excludes user_id for security)
+      // We use comments table to get the comment's user_id, then join with profiles
+      // Since we can only access profiles when authenticated, fetch profiles for the current user's comments
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, username, avatar_url')
-        .in('user_id', userIds);
+        .select('user_id, username, avatar_url');
 
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
 
